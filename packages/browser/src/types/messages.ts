@@ -14,6 +14,12 @@ type ApplyChatResponseMessage = {
   client_id: number
 }
 
+type ChatResponseFinishedMessage = {
+  action: 'chat-response-finished'
+  content: string
+  client_id: number
+}
+
 type GetTabDataMessage = {
   action: 'get-tab-data'
   url: string
@@ -24,3 +30,4 @@ export type Message =
   | ChatInitializedMessage
   | ApplyChatResponseMessage
   | GetTabDataMessage
+  | ChatResponseFinishedMessage

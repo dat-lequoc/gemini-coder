@@ -41,9 +41,16 @@ export type ClientIdAssignmentMessage = {
   client_id: number
 }
 
+export type ChatResponseFinishedMessage = {
+  action: 'chat-response-finished'
+  content: string
+  client_id: number
+}
+
 export type WebSocketMessage =
   | InitializeChatsMessage
   | UpdateSavedWebsitesMessage
   | BrowserConnectionStatusMessage
   | ClientIdAssignmentMessage
   | ApplyChatResponseMessage
+  | ChatResponseFinishedMessage

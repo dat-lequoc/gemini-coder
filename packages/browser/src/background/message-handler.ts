@@ -221,6 +221,12 @@ export const setup_message_listeners = () => {
             action: 'apply-chat-response',
             client_id: message.client_id
           } as ApplyChatResponseMessage)
+        } else if (message.action == 'chat-response-finished') {
+          send_message_to_server({
+            action: 'chat-response-finished',
+            content: message.content,
+            client_id: message.client_id
+          })
         } else if (message.action == 'get-tab-data') {
           handle_get_tab_data((tab_data) => {
             sendResponse(tab_data)

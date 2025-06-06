@@ -45,11 +45,11 @@ def send_prompts_to_cwc():
                     "model": MODEL_ID,
                     "temperature": 0.0
                 },
-                {
-                    "url": AI_STUDIO_URL,
-                    "model": MODEL_ID,
-                    "temperature": 0.5
-                }
+                # {
+                #     "url": AI_STUDIO_URL,
+                #     "model": MODEL_ID,
+                #     "temperature": 0.5
+                # }
             ],
             "client_id": client_id
         }
