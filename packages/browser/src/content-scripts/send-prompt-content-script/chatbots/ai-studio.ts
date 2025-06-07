@@ -16,26 +16,43 @@ import { is_eligible_code_block } from '../utils/is-eligible-code-block'
  */
 const extract_markdown_from_turn = (chat_turn: HTMLElement): string => {
   const markdown_parts: string[] = []
-  // The main container for the response content
+  // The main container for the response content is inside a custom element.
   const response_content = chat_turn.querySelector('ms-cmark-node.cmark-node')
 
   if (response_content) {
-    for (const child of Array.from(response_content.children)) {
-      // Handle code blocks
-      if (child.tagName.toLowerCase() === 'ms-code-block') {
-        const code_element = child.querySelector('code')
-        const language_element = child.querySelector('.code-header .language')
-        const language = language_element?.textContent?.trim() || ''
-        const code = code_element?.textContent || ''
-        markdown_parts.push(`\`\`\`${language}\n${code}\n\`\`\``)
-      } else {
-        // Handle other text elements (paragraphs, lists, etc.)
-        markdown_parts.push(child.textContent || '')
+    // Iterate over all child nodes, including text nodes, to be more robust.
+    for (const child of Array.from(response_content.childNodes)) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const element = child as HTMLElement
+        // Handle code blocks specifically
+        if (element.tagName.toLowerCase() === 'ms-code-block') {
+          const preElement = element.querySelector('pre')
+          const languageElement = element.querySelector('footer .language')
+          const language = languageElement?.textContent?.trim() || ''
+          // Use innerText on <pre> to preserve formatting and newlines
+          const code = preElement?.innerText || ''
+          markdown_parts.push(`\`\`\`${language}\n${code}\n\`\`\``)
+        } else {
+          // For other elements like <p>, <ul>, etc., innerText is a
+          // reasonable way to get the visible text and basic structure.
+          const text = element.innerText?.trim()
+          if (text) {
+            markdown_parts.push(text)
+          }
+        }
+      } else if (child.nodeType === Node.TEXT_NODE) {
+        // Handle text nodes that might be between elements
+        const text = child.textContent?.trim()
+        if (text) {
+          markdown_parts.push(text)
+        }
       }
     }
   }
 
-  return markdown_parts.join('\n\n')
+  // Join the parts with double newlines, which is standard for markdown blocks.
+  // Filter out any empty strings that might have been added.
+  return markdown_parts.filter(Boolean).join('\n\n')
 }
 
 export const ai_studio: Chatbot = {
