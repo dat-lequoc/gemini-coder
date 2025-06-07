@@ -70,6 +70,7 @@ def send_prompts_to_cwc():
                 message_str = ws.recv()
                 message = json.loads(message_str)
                 
+                print(message)
                 if message.get("action") == "chat-response-finished":
                     finished_chats += 1
                     print(f"\n🎉 Received finished response ({finished_chats}/{num_chats}):")
