@@ -8,6 +8,36 @@ import {
 } from '../utils/apply-response-styles'
 import { is_eligible_code_block } from '../utils/is-eligible-code-block'
 
+/**
+ * Manually constructs a markdown string by parsing the AI Studio response elements.
+ * This is more reliable than generic HTML-to-Markdown and avoids clipboard issues.
+ * @param chat_turn The <ms-chat-turn> element containing the response.
+ * @returns A markdown string of the response content.
+ */
+const extract_markdown_from_turn = (chat_turn: HTMLElement): string => {
+  const markdown_parts: string[] = []
+  // The main container for the response content
+  const response_content = chat_turn.querySelector('ms-cmark-node.cmark-node')
+
+  if (response_content) {
+    for (const child of Array.from(response_content.children)) {
+      // Handle code blocks
+      if (child.tagName.toLowerCase() === 'ms-code-block') {
+        const code_element = child.querySelector('code')
+        const language_element = child.querySelector('.code-header .language')
+        const language = language_element?.textContent?.trim() || ''
+        const code = code_element?.textContent || ''
+        markdown_parts.push(`\`\`\`${language}\n${code}\n\`\`\``)
+      } else {
+        // Handle other text elements (paragraphs, lists, etc.)
+        markdown_parts.push(child.textContent || '')
+      }
+    }
+  }
+
+  return markdown_parts.join('\n\n')
+}
+
 export const ai_studio: Chatbot = {
   wait_until_ready: async () => {
     await new Promise((resolve) => {
@@ -118,60 +148,28 @@ export const ai_studio: Chatbot = {
   inject_apply_response_button: (client_id: number) => {
     const debounced_process_response = debounce(
       (params: { footer: Element }) => {
-        console.log('[CWC-Debug] Response finished. Processing footer:', params.footer)
-        const turn_container = params.footer.closest('.chat-turn-container') as HTMLElement
-
-        if (!turn_container) {
-          console.error('[CWC-Debug] .chat-turn-container not found for footer:', params.footer)
+        const chat_turn = params.footer.closest('ms-chat-turn') as HTMLElement
+        if (!chat_turn) {
+          console.error('[CWC-Debug] Could not find ms-chat-turn element.')
           return
         }
 
-        // --- Auto-copy response logic ---
-        if (!turn_container.dataset.cwcResponseSent) {
-          turn_container.dataset.cwcResponseSent = 'true'
-          console.log('[CWC-Debug] Response not sent yet. Proceeding with copy.');
+        // --- Auto-send response logic ---
+        if (!chat_turn.dataset.cwcResponseSent) {
+          chat_turn.dataset.cwcResponseSent = 'true'
+          console.log('[CWC-Debug] Response finished. Extracting markdown...')
+          const markdown_content = extract_markdown_from_turn(chat_turn)
 
-          ;(async () => {
-            try {
-              const options_button = turn_container.querySelector(
-                'ms-chat-turn-options > div > button'
-              ) as HTMLElement | null
-              
-              if (!options_button) {
-                console.error('[CWC-Debug] Could not find options button (more_vert).')
-                return
-              }
-              
-              console.log('[CWC-Debug] Found options button. Clicking it.');
-              options_button.click()
-              await new Promise((resolve) => setTimeout(resolve, 200)) // Increased delay
-
-              console.log('[CWC-Debug] Searching for "Copy markdown" button...');
-              const markdown_copy_button = Array.from(
-                document.querySelectorAll('button.mat-mdc-menu-item')
-              ).find((button) =>
-                button.querySelector('.copy-markdown-button')
-              ) as HTMLElement | null
-
-              if (markdown_copy_button) {
-                console.log('[CWC-Debug] Found "Copy markdown" button:', markdown_copy_button);
-                markdown_copy_button.click()
-                console.log('[CWC-Debug] Successfully clicked "Copy markdown". The content should be in your clipboard.')
-              } else {
-                console.error('[CWC-Debug] "Copy markdown" button NOT FOUND.');
-                const menuPanel = document.querySelector('.cdk-overlay-pane.gmat-mdc-menu');
-                console.log('[CWC-Debug] Current menu panel HTML:', menuPanel?.innerHTML || 'Not found');
-                options_button.click(); // Attempt to close the menu
-              }
-            } catch (error) {
-              console.error(
-                '[CWC-Debug] Error getting finished response via clipboard:',
-                error
-              )
-            }
-          })()
-        } else {
-            console.log('[CWC-Debug] Response already marked as sent. Skipping.')
+          if (markdown_content) {
+            console.log('[CWC-Debug] Markdown extracted. Sending message.')
+            browser.runtime.sendMessage<Message>({
+              action: 'chat-response-finished',
+              content: markdown_content,
+              client_id
+            })
+          } else {
+            console.error('[CWC-Debug] Failed to extract markdown content.')
+          }
         }
 
         const apply_response_button_text = 'Apply response with CWC'
@@ -183,9 +181,6 @@ export const ai_studio: Chatbot = {
 
         if (existing_apply_response_button) return
 
-        const chat_turn = turn_container.closest('ms-chat-turn')
-        if (!chat_turn) return
-        
         const first_line_comments_of_code_blocks =
           chat_turn.querySelectorAll('ms-code-block code')
         let has_eligible_block = false
@@ -209,32 +204,12 @@ export const ai_studio: Chatbot = {
 
           apply_response_button.addEventListener('click', async () => {
             set_button_disabled_state(apply_response_button)
-            const chat_turn_container = apply_response_button.closest(
-              '.chat-turn-container'
-            )!
-            const options = chat_turn_container.querySelector(
-              'ms-chat-turn-options > div > button'
-            ) as HTMLElement
-            options.click()
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            const markdown_copy_button = Array.from(
-              document.querySelectorAll('button.mat-mdc-menu-item')
-            ).find((button) =>
-              button.querySelector('.copy-markdown-button')
-            ) as HTMLElement | null
-            if (markdown_copy_button) {
-              markdown_copy_button.click()
-              await new Promise((resolve) => setTimeout(resolve, 100))
-              browser.runtime.sendMessage<Message>({
-                action: 'apply-chat-response',
-                client_id
-              })
-            } else {
-              console.error(
-                "CWC: Could not find 'Copy markdown' button for apply action."
-              )
-              options.click() // close menu
-            }
+            // Send the message to apply the change. The background script
+            // already has the last response content.
+            browser.runtime.sendMessage<Message>({
+              action: 'apply-chat-response',
+              client_id
+            })
           })
 
           params.footer.insertBefore(
@@ -256,6 +231,7 @@ export const ai_studio: Chatbot = {
           'ms-chat-turn .turn-footer'
         )
         all_footers.forEach((footer) => {
+          // Check for the "Good response" button as a sign of completion
           if (
             footer.querySelector('mat-icon')?.textContent?.trim() == 'thumb_up'
           ) {
