@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
@@ -31,8 +32,8 @@ def report_result():
     print(f"🎉 NEW RESPONSE RECEIVED (from client_id: {client_id})")
     print("="*50)
     print(content)
-    import datetime
-    with open(f"{datetime.datetime.now()}.txt", "w") as f:
+    filename = f'{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")}.txt'
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
     print("="*50 + "\n")
 
