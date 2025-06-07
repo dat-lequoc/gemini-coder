@@ -31,6 +31,9 @@ def report_result():
     print(f"🎉 NEW RESPONSE RECEIVED (from client_id: {client_id})")
     print("="*50)
     print(content)
+    import datetime
+    with open(f"{datetime.datetime.now()}.txt", "w") as f:
+        f.write(content)
     print("="*50 + "\n")
 
     return jsonify({"status": "ok", "message": "Result received successfully"}), 200
