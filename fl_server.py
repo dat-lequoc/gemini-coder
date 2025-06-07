@@ -2,6 +2,7 @@ import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
+from collections import deque
 
 # Disable Flask's default logging to focus on our messages
 log = logging.getLogger('werkzeug')
@@ -10,6 +11,9 @@ log.setLevel(logging.ERROR)
 app = Flask(__name__)
 # Allow requests from the browser extension's origins
 CORS(app)
+
+# A simple in-memory queue for commands to the browser extension
+command_queue = deque()
 
 @app.route('/report_result', methods=['POST'])
 def report_result():
@@ -32,12 +36,46 @@ def report_result():
     print(f"🎉 NEW RESPONSE RECEIVED (from client_id: {client_id})")
     print("="*50)
     print(content)
-    filename = f'{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")}.txt'
+    filename = f'logs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")}.txt'
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
     print("="*50 + "\n")
 
     return jsonify({"status": "ok", "message": "Result received successfully"}), 200
+
+@app.route('/continue_chat', methods=['POST'])
+def continue_chat():
+    """
+    Receives a prompt to continue the chat in the browser and queues it.
+    """
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    prompt = data.get('prompt')
+
+    if not prompt:
+        return jsonify({"status": "error", "message": "Missing 'prompt' in request"}), 400
+
+    command = {"action": "continue_chat", "prompt": prompt}
+    command_queue.append(command)
+
+    print(f"✅ Queued 'continue_chat' command with prompt: \"{prompt[:50]}...\"")
+
+    return jsonify({"status": "ok", "message": "Command queued"}), 200
+
+@app.route('/get_command', methods=['GET'])
+def get_command():
+    """
+    Polled by the browser extension to get the next command.
+    """
+    if command_queue:
+        command = command_queue.popleft()
+        print(f"✅ Dequeued command: {command['action']}")
+        return jsonify(command)
+    else:
+        # Return an empty object if no command is available
+        return jsonify({})
 
 if __name__ == '__main__':
     port = 5001 # Using a different port to avoid conflicts

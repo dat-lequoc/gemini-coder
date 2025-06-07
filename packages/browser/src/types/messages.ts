@@ -25,9 +25,15 @@ type GetTabDataMessage = {
   url: string
 }
 
+type ContinueChatMessage = {
+  action: 'continue_chat'
+  prompt: string
+}
+
 export type Message =
   | UpdateSavedWebsitesMessage
   | ChatInitializedMessage
   | ApplyChatResponseMessage
   | GetTabDataMessage
   | ChatResponseFinishedMessage
+  | ContinueChatMessage
