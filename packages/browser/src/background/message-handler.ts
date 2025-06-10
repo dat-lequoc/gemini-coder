@@ -228,10 +228,10 @@ export const setup_message_listeners = () => {
             client_id: message.client_id
           }
           // Send to the original CWC server (we'll keep this for now)
-          send_message_to_server(finished_message)
-
+          // send_message_to_server(finished_message) # no more socket
           // ALSO send to our new reliable Flask server
           try {
+            console.log('Sending result to the local Flask server:', finished_message)  
             fetch('http://localhost:5001/report_result', {
               method: 'POST',
               headers: {
