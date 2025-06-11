@@ -2,6 +2,7 @@ import browser from 'webextension-polyfill'
 import { Chat } from '@shared/types/websocket-message'
 import { Chatbot } from './types/chatbot'
 import { Message } from '@/types/messages'
+import { is_message } from '@/utils/is-message'
 import {
   ai_studio,
   gemini,
@@ -223,6 +224,34 @@ const initialize_chat = async (params: { message: string; chat: Chat }) => {
 }
 
 const main = async () => {
+  // Listen for 'continue_chat' commands from the background script
+  browser.runtime.onMessage.addListener(async (message: any) => {
+    // Use the type guard to ensure the message has a valid structure
+    if (is_message(message) && message.action === 'continue_chat') {
+      // Safely cast to the specific message type to access its properties
+      const continueMessage = message as Extract<
+        Message,
+        { action: 'continue_chat' }
+      >
+
+      console.log(
+        'Content script received continue_chat:',
+        continueMessage.prompt
+      )
+
+      // Use the existing logic to enter and send the follow-up prompt
+      if (chatbot?.enter_message_and_send) {
+        await chatbot.enter_message_and_send(continueMessage.prompt)
+      } else {
+        await enter_message_and_send({
+          input_element: get_textarea_element(),
+          message: continueMessage.prompt
+        })
+      }
+    }
+  })
+
+  // The rest of the function handles the *initial* prompt from CWC
   if (!is_gemini_coder_hash) return
 
   // Remove the hash from the URL to avoid reloading the content script if the page is refreshed

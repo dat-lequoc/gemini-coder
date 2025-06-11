@@ -1,3 +1,7 @@
 /.vscode
 /node_modules
 /docs/index.md
+logs/
+
+# CodeWebChat state and logs (auto-added)
+.cwc/
