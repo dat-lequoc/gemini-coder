@@ -4,7 +4,6 @@ import {
   ApplyChatResponseMessage
 } from '@shared/types/websocket-message'
 import browser from 'webextension-polyfill'
-import { send_saved_websites, send_message_to_server } from './websocket'
 import { is_message } from '@/utils/is-message'
 import { GetTabDataResponse } from '@/types/responses'
 import { image_url_to_base64 } from '@/utils/image-url-to-base64'
@@ -98,27 +97,11 @@ const process_next_chat = async () => {
     }
   })
 
-  // OpenRouter is a special case, in model handling via search params
-  if (current_chat.url == 'https://openrouter.ai/chat') {
-    // https://openrouter.ai/chat?models=openrouter/quasar-alpha
-    const search_params = new URLSearchParams()
-    if (current_chat.model) {
-      search_params.set('models', current_chat.model)
-    }
-    const open_router_url = `${
-      current_chat.url
-    }?${search_params.toString()}#gemini-coder-${batch_id}`
-    browser.tabs.create({
-      url: open_router_url,
-      active: true
-    })
-  } else {
-    // Open the tab with the current chat URL
-    browser.tabs.create({
-      url: `${current_chat.url}#gemini-coder-${batch_id}`,
-      active: true
-    })
-  }
+  // Open the tab with the current chat URL
+  browser.tabs.create({
+    url: `${current_chat.url}#gemini-coder-${batch_id}`,
+    active: true
+  })
 
   // Increment the current index for the next chat
   current_queue_item.current_index++
@@ -213,25 +196,46 @@ export const setup_message_listeners = () => {
     (message: any, _: any, sendResponse: any): any => {
       if (is_message(message)) {
         if (message.action == 'update-saved-websites' && message.websites) {
-          send_saved_websites(message.websites)
+          // This used to send saved websites to VSCode.
+          // This is no longer needed with the Flask-only setup.
         } else if (message.action == 'chat-initialized') {
           handle_chat_initialized()
         } else if (message.action == 'apply-chat-response') {
-          send_message_to_server({
+          const apply_message = {
             action: 'apply-chat-response',
             client_id: message.client_id
-          } as ApplyChatResponseMessage)
+          } as ApplyChatResponseMessage
+          // Send to our new reliable Flask server
+          try {
+            console.log(
+              'Sending apply-chat-response to the local Flask server:',
+              apply_message
+            )
+            fetch('http://localhost:5001/apply_response', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(apply_message)
+            })
+          } catch (error) {
+            console.error(
+              'Could not send apply-chat-response to the local Flask server:',
+              error
+            )
+          }
         } else if (message.action == 'chat-response-finished') {
           const finished_message = {
             action: 'chat-response-finished',
             content: message.content,
             client_id: message.client_id
           }
-          // Send to the original CWC server (we'll keep this for now)
-          // send_message_to_server(finished_message) # no more socket
           // ALSO send to our new reliable Flask server
           try {
-            console.log('Sending result to the local Flask server:', finished_message)  
+            console.log(
+              'Sending result to the local Flask server:',
+              finished_message
+            )
             fetch('http://localhost:5001/report_result', {
               method: 'POST',
               headers: {
@@ -240,7 +244,10 @@ export const setup_message_listeners = () => {
               body: JSON.stringify(finished_message)
             })
           } catch (error) {
-            console.error('Could not send result to the local Flask server:', error)
+            console.error(
+              'Could not send result to the local Flask server:',
+              error
+            )
           }
         } else if (message.action == 'get-tab-data') {
           handle_get_tab_data((tab_data) => {

@@ -8,15 +8,8 @@ import {
   gemini,
   chatgpt,
   claude,
-  mistral,
-  open_webui,
   deepseek,
-  grok,
-  openrouter,
-  qwen,
-  yuanbao,
-  doubao,
-  huggingchat
+  grok
 } from './chatbots'
 
 // In case it changes before finding textarea element (e.g. in mobile AI Studio, when changing model)
@@ -40,9 +33,6 @@ const is_ai_studio = current_url.startsWith(ai_studio_url)
 const gemini_url = 'https://gemini.google.com/app'
 const is_gemini = current_url.startsWith(gemini_url)
 
-const openrouter_url = 'https://openrouter.ai/chat'
-const is_openrouter = current_url.startsWith(openrouter_url)
-
 const chatgpt_url = 'https://chatgpt.com/'
 const is_chatgpt = current_url.startsWith(chatgpt_url)
 
@@ -52,25 +42,8 @@ const is_claude = current_url.startsWith(claude_url)
 const deepseek_url = 'https://chat.deepseek.com/'
 const is_deepseek = current_url.startsWith(deepseek_url)
 
-const mistral_url = 'https://chat.mistral.ai/chat'
-const is_mistral = current_url.startsWith(mistral_url)
-
-const qwen_url = 'https://chat.qwen.ai/'
-const is_qwen = current_url.startsWith(qwen_url)
-
-const yuanbao_url = 'https://yuanbao.tencent.com/chat'
-const is_yuanbao = current_url.startsWith(yuanbao_url)
-
 const grok_url = 'https://grok.com/'
 const is_grok = current_url.startsWith(grok_url)
-
-const doubao_url = 'https://www.doubao.com/chat/'
-const is_doubao = current_url.startsWith(doubao_url)
-
-const huggingchat_url = 'https://huggingface.co/chat/'
-const is_huggingchat = current_url.startsWith(huggingchat_url)
-
-const is_open_webui = document.title.includes('Open WebUI')
 
 let chatbot: Chatbot | null = null
 
@@ -82,37 +55,19 @@ if (is_ai_studio) {
   chatbot = chatgpt
 } else if (is_claude) {
   chatbot = claude
-} else if (is_mistral) {
-  chatbot = mistral
-} else if (is_open_webui) {
-  chatbot = open_webui
 } else if (is_deepseek) {
   chatbot = deepseek
 } else if (is_grok) {
   chatbot = grok
-} else if (is_openrouter) {
-  chatbot = openrouter
-} else if (is_qwen) {
-  chatbot = qwen
-} else if (is_yuanbao) {
-  chatbot = yuanbao
-} else if (is_doubao) {
-  chatbot = doubao
-} else if (is_huggingchat) {
-  chatbot = huggingchat
 }
 
 export const get_textarea_element = () => {
   const chatbot_selectors = {
     [ai_studio_url]: 'textarea',
     [gemini_url]: 'div[contenteditable="true"]',
-    [openrouter_url]: 'textarea',
     [chatgpt_url]: 'div#prompt-textarea',
     [claude_url]: 'div[contenteditable=true]',
-    [deepseek_url]: 'textarea',
-    [mistral_url]: 'textarea',
-    [yuanbao_url]: 'div[contenteditable="true"]',
-    [doubao_url]: 'textarea'
+    [deepseek_url]: 'textarea'
   } as any
 
   // Find the appropriate selector based on the URL without the hash
@@ -171,9 +126,6 @@ const enter_message_and_send = async (params: {
     params.input_element.dispatchEvent(new Event('input', { bubbles: true }))
     params.input_element.dispatchEvent(new Event('change', { bubbles: true }))
     await new Promise((r) => requestAnimationFrame(r))
-    if (is_openrouter || is_mistral) {
-      await new Promise((r) => setTimeout(r, 500))
-    }
     if (form) {
       form.requestSubmit()
     } else if (is_ai_studio) {

@@ -13,7 +13,7 @@
     "128": "icons/icon-128.png"
   },
   "permissions": ["storage", "alarms", "activeTab"],
-  "host_permissions": ["http://localhost:55155/", "ws://localhost:55155/"],
+  "host_permissions": [],
   "action": {
     "default_title": "Code Web Chat Connector",
     "default_popup": "popup.html"
@@ -26,18 +26,10 @@
       "matches": [
         "https://aistudio.google.com/prompts/new_chat",
         "https://gemini.google.com/app",
-        "https://openrouter.ai/chat*",
         "https://chatgpt.com/",
         "https://claude.ai/new",
         "https://grok.com/",
-        "https://chat.deepseek.com/",
-        "https://chat.mistral.ai/chat",
-        "https://huggingface.co/chat/",
-        "https://chat.qwen.ai/",
-        "https://yuanbao.tencent.com/chat*",
-        "https://www.doubao.com/chat/",
-        "http://localhost/",
-        "http://openwebui/"
+        "https://chat.deepseek.com/"
       ],
       "js": ["send-prompt-content-script.js"]
     }

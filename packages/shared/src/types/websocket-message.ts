@@ -14,30 +14,8 @@ export type InitializeChatsMessage = {
   client_id: number // Client ID to identify which editor sent this message
 }
 
-export type Website = {
-  url: string
-  title: string
-  content: string
-  favicon?: string
-}
-
-export type UpdateSavedWebsitesMessage = {
-  action: 'update-saved-websites'
-  websites: Array<Website>
-}
-
-export type BrowserConnectionStatusMessage = {
-  action: 'browser-connection-status'
-  has_connected_browsers: boolean
-}
-
 export type ApplyChatResponseMessage = {
   action: 'apply-chat-response'
-  client_id: number
-}
-
-export type ClientIdAssignmentMessage = {
-  action: 'client-id-assignment'
   client_id: number
 }
 
@@ -49,8 +27,5 @@ export type ChatResponseFinishedMessage = {
 
 export type WebSocketMessage =
   | InitializeChatsMessage
-  | UpdateSavedWebsitesMessage
-  | BrowserConnectionStatusMessage
-  | ClientIdAssignmentMessage
   | ApplyChatResponseMessage
   | ChatResponseFinishedMessage
