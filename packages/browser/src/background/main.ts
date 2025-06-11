@@ -1,4 +1,3 @@
-import { connect_websocket } from './websocket'
 import { setup_keep_alive } from './keep-alive'
 import { setup_message_listeners, handle_messages } from './message-handler'
 import { clear_chat_init_data } from './clear-chat-init-data'
@@ -42,7 +41,6 @@ async function pollForCommands() {
 
 async function init() {
   await clear_chat_init_data()
-  // connect_websocket() // This is correctly removed to disconnect from the VS Code proxy.
   setup_keep_alive()
   setup_message_listeners()
 
